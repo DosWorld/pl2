@@ -1332,14 +1332,14 @@ end
 
 sub main
         dim in_file
+        print("PL/2-86 Compiler  (c) 2020 DosWorld  MIT License\n")
         if paramcount() <> 1 then
-                print("PL/2-86 Compiler  (c) 2020 DosWorld\n\n")
-                print("Usage:\n\tPL2C source.pl2\n")
+                print("\nUsage:\n\tPL2C source.pl2\n")
                 halt(1)
         end
         getenv("PL2_HOME", lib_dir)
         if len(lib_dir) = 0 then
-                print("Env var PL2_HOME is not set.\n")
+                print("WARN:Env var PL2_HOME is not set.\n")
         else
                 have_lib_dir = true
                 dim n

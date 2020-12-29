@@ -29,7 +29,7 @@ dim table
 sub main
         dim ptr, type, show, ofs, name
 
-        print("PL/2-86 Compiler MAP-file converter (c) 2020 DosWorld\n")
+        print("PL/2-86 Compiler MAP-file converter  (c) 2020 DosWorld  MIT License\n")
 
         if paramcount() <> 1 then
                 print("\nUsage:\n\tMAP2TXT source.map\n")
@@ -44,7 +44,7 @@ sub main
                 halt(1)
         end
         ptr = table%[ptr - 2]
-        print("\nADDR\tTYPE\t\NAME\n")
+        print("\nADDR\tTYPE\t\NAME\n\n")
         while ptr <> -1
                 ofs = table%[ptr + 4]
                 type =  table[ptr + 2]

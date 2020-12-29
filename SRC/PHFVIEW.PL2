@@ -21,9 +21,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-include "zbasic.inc"
-include "bdos.inc"
-include "aterm.inc"
+include "pl2.pl2"
+include "bdos.pl2"
+include "aterm.pl2"
 
 const KEY_LEFT   = 1
 const KEY_RIGHT  = 2
@@ -75,6 +75,7 @@ end
 
 sub main
         dim res, f
+        print("PHFVIEW  (c) 2020 DosWorld  MIT License\n\n")
         if paramcount() <> 1 then
                 print("Usage:\nPHFVIEW filename.phf")
                 halt(1)
