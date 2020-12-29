@@ -1,0 +1,298 @@
+/*
+ MIT License
+
+ Copyright (c) 2020 Viacheslav Komenda
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+*/
+?parsecommandline FALSE
+?resize FALSE
+?jumptomain FALSE
+
+word pascal fopenr(word fname);
+word pascal fopenw(word fname);
+word pascal fopena(word fname);
+void pascal fclose(word f);
+char pascal fread(word f, word buf);
+char pascal fwrite(word f, word buf);
+void pascal truncate(word f);
+void pascal fileseek(word f, word ofs);
+word pascal filepos(word f);
+word pascal filesize(word f);
+void pascal bsave(word fname, word buf, word size);
+word pascal bload(word fname, word buf);
+void pascal printc(char c);
+void pascal printcr();
+void pascal print(char *s);
+void pascal printi(int i);
+void pascal printhb(byte b);
+void pascal printhw(word w);
+void pascal getself(word w);
+void pascal getenv(word name, word dst);
+
+asm {
+        jmp printc
+        jmp printcr
+        jmp print
+        jmp printi
+        jmp printhb
+        jmp printhw
+        jmp fopenr
+        jmp fopenw
+        jmp fopena
+        jmp fclose
+        jmp fread
+        jmp fwrite
+        jmp truncate
+        jmp fileseek
+        jmp filepos
+        jmp filesize
+        jmp bsave
+        jmp bload
+        jmp getself
+        jmp getenv
+}
+
+word pascal fopenr(word fname) {
+        AX = 0x3D00; DX = fname; $INT 0x21;
+        IF( CARRYFLAG ) { AX = 0; }
+        return AX;
+}
+
+word pascal fopenw(word fname) {
+        AX = 0x3D01; DX = fname; $INT 0x21;
+        IF( CARRYFLAG ) {
+                CX = 0; DX = fname; AH = 0x3C; $INT 0x21;
+                IF( CARRYFLAG ) { AX = 0; }
+        }
+        return AX;
+}
+
+word pascal fopena(word fname) {
+        AX = 0x3D02; DX = fname; $INT 0x21;
+        IF( CARRYFLAG ) {
+                CX = 0; DX = fname; AH = 0x3C; $INT 0x21;
+                IF( CARRYFLAG ) { AX = 0; }
+        }
+        return AX;
+}
+
+void pascal fclose(word f) { BX = f; AH = 0x3E; $INT 0x21; }
+
+char pascal fread(word f, word buf) {
+        DI = buf;
+        CX = 128; AL = 27;
+        $CLD; $REPZ; $STOSB;
+        AH = 0x3F; CX = 128; DX = buf; BX = f;
+        $INT 0x21;
+        IF(CARRYFLAG) {
+                AX = 0;
+        } IF(AX != 0) {
+                AX = -1;
+        } ELSE {
+                AX = 0;
+        }
+        return AX;
+}
+
+char pascal fwrite(word f, word buf) {
+        AH = 0x40; CX = 128; DX = buf; BX = f;
+        $INT 0x21;
+        IF(CARRYFLAG) {
+                AX = 0;
+        } IF(AX == 128) {
+                AX = -1;
+        } ELSE {
+                AX = 0;
+        }
+}
+
+void pascal truncate(word f) {
+        AH = 0x40; CX = 0; BX = f;
+        $INT 0x21;
+}
+
+void pascal fileseek(word f, word ofs) {
+        AX = 0x4200; BX = f;
+        AX = ofs;
+        $PUSH AX;
+        AX = AX << 7;
+        DX = AX;
+        $POP AX;
+        AX = AX >> 9;
+        CX = AX;
+        $INT 0x21;
+}
+
+word pascal filepos(word f) {
+        DX = CX = 0;
+        AX = 0x4201; BX = f;
+        $INT 0x21;
+        AX = AX >> 7;
+        $PUSH AX;
+        AX = DX;
+        AX = AX << 9;
+        $POP CX;
+        AX |= CX;
+        return AX;
+}
+
+word pascal filesize(word f) {
+        AX = filepos(f);
+        $PUSH AX;
+        DX = CX = 0;
+        AX = 0x4202; BX = f;
+        $INT 0x21;
+        AX = filepos(f);
+        $POP SI;
+        $PUSH AX;
+        fileseek(f, SI);
+        $POP AX;
+}
+
+void pascal bsave(word fname, word buf, word size) {
+        word f;
+        f = fopenw(fname);
+        IF(f != 0) {
+                AH = 0x40; CX = size; DX = buf; BX = f;
+                $INT 0x21;
+                truncate(f);
+                fclose(f);
+        }
+}
+
+word pascal bload(word fname, word buf) {
+        word f , s;
+        s = 0;
+        f = fopenr(fname);
+        if(f != 0) {
+                AH = 0x3F; CX = -1; DX = buf; BX = f;
+                $INT 0x21;
+                IF(CARRYFLAG) {
+                        AX = 0;
+                }
+                s = AX;
+                fclose(f);
+        }
+        return s;
+}
+
+void pascal printc(char c) { DL = c; AH = 2; $INT 0x21; }
+void pascal printcr() { DL = 0x0d; AH = 2; $INT 0x21; DL = 0x0a; AH = 2; $INT 0x21; }
+void pascal print(char *s) { SI = s; $CLD; WHILE(1) { $LODSB; IF(AL==0) BREAK; DL = AL; AH = 2; $INT 0x21; } }
+void pascal printi(int i) { if(i < 0) { printc('-'); i = -i; }  AX = i / 10; IF(AX !=0) { printi(AX);} AX = i % 10; AX += '0'; printc(AX); }
+
+void pascal printhb(byte b) {
+        AL = b;
+        AL = AL >> 4;
+        IF(AL < 10) AL += '0';
+        ELSE AL += 'A' - 10;
+        printc(AL);
+        AL = b;
+        AL &= 0x0F;
+        IF(AL < 10) AL += '0';
+        ELSE AL += 'A' - 10;
+        printc(AL);
+}
+
+void pascal printhw(word w) {
+        AX = w;
+        printhb(AH);
+        AX = w;
+        printhb(AL);
+}
+
+void pascal getself(word w) {
+        $PUSH DS, ES;
+        $PUSH DS;
+        $POP ES;
+        DI = w;
+        AX = DSWORD[0x2c];
+        SI = 0;
+        DS = AX;
+        AL = 1;
+        WHILE(AX != 0) {
+                AH = AL;
+                $LODSB;
+        }
+        $LODSB;
+        $LODSB;
+        WHILE(TRUE) {
+                $LODSB;
+                $STOSB;
+                IF(AL == 0) BREAK;
+        }
+        $POP ES,DS;
+}
+
+word FindVar(word oname) {
+        $PUSH DS, ES, DS;
+        $POP ES;
+        AX = DSWORD[0x2c];
+        DI = oname;
+        DS = AX;
+        SI = 0;
+        $CLD;
+        WHILE(TRUE) {
+                $LODSB;
+                IF(AL = 0) { AX = SI; SI--; BREAK; }
+                SI--;
+                $PUSH DI,SI;
+                WHILE (TRUE) {
+                        $LODSB;
+                        IF(AL >= 'a') IF(AL <= 'z') AL -= 32;
+                        AH = ESBYTE[DI]; DI++;
+                        IF(AH >= 'a') IF(AH <= 'z') AH -= 32;
+                        IF(AH != AL) {
+                                IF (AX == 0x003D) {
+                                        $POP SI, DI;
+                                        $POP ES, DS;
+                                        return SI;
+                                } ELSE BREAK;
+                        }
+                }
+                $POP SI, DI;
+                WHILE(TRUE) {
+                        $LODSB;
+                        IF(AL == 0) BREAK;
+                }
+        }
+        AX = 0xFFFF;
+        $POP ES, DS;
+}
+
+void pascal getenv(word name, word dst) {
+        DSBYTE[dst] = 0;
+        AX = FindVar(name);
+        IF(AX == 0xFFFF) return;
+        $PUSH ES, DS, DS;
+        $POP ES;
+        SI = AX; DI = dst; AX = DSWORD[0x2c]; DS = AX;
+        $CLD;
+        WHILE(TRUE) {
+                $LODSB;
+                IF(AL == '=') BREAK;
+        }
+        WHILE(TRUE) {
+                $LODSB;
+                $STOSB;
+                IF(AL == 0) BREAK;
+        }
+        $POP DS, ES;
+}

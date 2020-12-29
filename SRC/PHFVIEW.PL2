@@ -1,0 +1,94 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+include "zbasic.inc"
+include "bdos.inc"
+include "aterm.inc"
+
+const KEY_LEFT   = 1
+const KEY_RIGHT  = 2
+const KEY_UP     = 3
+const KEY_DN     = 4
+const KEY_DGUP   = 5
+const KEY_DGDN   = 6
+const KEY_HOME   = 7
+const KEY_END    = 8
+const KEY_SELECT = 9
+const KEY_BACK   = 10
+const KEY_EXIT   = 11
+
+const HLP_REC_SIZE = 16
+
+dim topic_data
+dim iobuf
+dim tmpbuf
+
+function search_topic(f, topic_name)
+        dim res
+        res = FALSE
+        
+        return res
+end
+
+function phf_view(f, topic_name)
+        dim res, old_topic_data
+        res = 0
+        old_topic_data = topic_data
+        topic_data = FREE_MEMORY
+        FREE_MEMORY = FREE_MEMORY + HLP_REC_SIZE + 64
+        if search_topic(f, topic_name) then
+        
+        else
+                res = 1
+        end
+        FREE_MEMORY = topic_data
+        topic_data = old_topic_data
+        return res
+end
+
+sub init
+        iobuf = FREE_MEMORY
+        FREE_MEMORY = FREE_MEMORY + 128
+        tmpbuf = FREE_MEMORY
+        FREE_MEMORY = FREE_MEMORY + 128
+end
+
+sub main
+        dim res, f
+        if paramcount() <> 1 then
+                print("Usage:\nPHFVIEW filename.phf")
+                halt(1)
+        end
+        f = fopenr(fname)
+        if f = 0 then
+                print("Could not open ")
+                print(name)
+                halt(1)
+        end
+        init
+        res = phf_view(f, "INDEX")
+        fclose(f)
+        aterm_color(ATERM_WHITE, ATERM_BLACK)
+        aterm_cls()
+        halt(res)
+end

@@ -1,0 +1,70 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+include "pl2.pl2"
+include "bdos.pl2"
+
+dim table
+
+sub main
+        dim ptr, type, show, ofs, name
+
+        print("PL/2-86 Compiler MAP-file converter (c) 2020 DosWorld\n")
+
+        if paramcount() <> 1 then
+                print("\nUsage:\n\tMAP2TXT source.map\n")
+                halt(1)
+        end
+        table = FREE_MEMORY
+        ptr = bload(paramstr(1), table)
+        if ptr = 0 then
+                print("\nCould not load ")
+                print(paramstr(1))
+                println()
+                halt(1)
+        end
+        ptr = table%[ptr - 2]
+        print("\nADDR\tTYPE\t\NAME\n")
+        while ptr <> -1
+                ofs = table%[ptr + 4]
+                type =  table[ptr + 2]
+                name = table + ptr + 8
+                if (type = 'F') or (type = 'S') or (type = 'G') or (type = '!') or (type = '?') then
+                        printhw(ofs)
+                        if type = 'F' then
+                                print("\tFUNC\t")
+                        elseif type = 'S' then
+                                print("\tSUB\t")
+                        elseif type = 'G' then
+                                print("\tVAR\t")
+                        elseif type = '!' then
+                                print("\tINIT\t")
+                        elseif type = '?' then
+                                print("\tFINAL\t")
+                        end
+                        print(name)
+                        println()
+                end
+                ptr = table%[ptr]
+        end
+end

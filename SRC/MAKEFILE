@@ -1,0 +1,13 @@
+all: tests.com pl2map.com
+
+pl2c.com: pl2c.pl2
+        pl2c pl2c.pl2
+        del tests.com
+
+tests.com: tests.pl2 pl2c.com
+        pl2c tests.pl2
+        tests.com
+
+pl2map.com: pl2c.com pl2map.pl2
+	pl2c pl2map.pl2
+

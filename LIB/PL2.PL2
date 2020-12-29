@@ -1,0 +1,58 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+declare function shl(val, shift)      inline("\x59\x58\xD3\xE0")
+declare function shr(val, shift)      inline("\x59\x58\xD3\xE8")
+declare function mod(val, divider)    inline("\x5B\x58\x31\xD2\xF7\xF3\x8B\xC2")
+declare function lo(w)                inline("\xB4\x00")
+declare function hi(w)                inline("\x88\xE0\xB4\x00")
+declare function bin_and(a, b)        inline("\x5B\x58\x21\xD8")
+declare function bin_or(a, b)         inline("\x5B\x58\x09\xD8")
+declare function bin_xor(a, b)        inline("\x5B\x58\x31\xD8")
+declare sub poke(ofs, val)            inline("\x58\x5b\x88\x07")
+declare sub pokei(ofs, val)           inline("\x58\x5b\x89\x07")
+declare function peek(ofs)            inline("\x5B\x8A\x07\xB4\x00")
+declare function peeki(ofs)           inline("\x5B\x8B\x07")
+declare sub memcopy(dst, src, count)  inline("\x59\x5E\x5F\xFC\xF3\xA4")
+#declare sub memfill(dst, count, bval)    inline("\x58\x59\x5F\xFC\xF3\xAA")
+#declare sub memfilli(dst, count, wval)   inline("\x58\x59\x5F\xFC\xF3\xAB")
+
+declare function cseg                 inline("\x8C\xC8")
+declare sub far_poke(seg, ofs, val)   inline("\x50\x5B\x8C\xC1\x07\x26\x88\x07\x8E\xC1")
+declare sub far_pokei(seg, ofs, val)  inline("\x50\x5B\x8C\xC1\x07\x26\x89\x07\x8E\xC1")
+declare function far_peek(seg, ofs)   inline("\x5B\x8C\xC1\x07\x26\x8A\x07\x8E\xC1")
+declare function far_peeki(seg, ofs)  inline("\x5B\x8C\xC1\x07\x26\x8B\x07\x8E\xC1")
+
+const plbin = file("pl2.bin")
+
+declare function len(val1, val2)      at plbin[0]
+declare sub strcpy(dst, src)          at plbin[3]
+declare function strcmp(str1, str2)   at plbin[6]
+declare sub strupr(str)               at plbin[9]
+declare sub strlwr(str)               at plbin[12]
+declare function ucase(c)             at plbin[15]
+declare function lcase(c)             at plbin[18]
+declare function is_digit(c)          at plbin[21]
+declare function is_alpha(c)          at plbin[24]
+declare function is_id(c)             at plbin[27]
+declare function strhash(str)         at plbin[30]

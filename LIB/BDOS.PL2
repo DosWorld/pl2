@@ -1,0 +1,119 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+const bdos = file("bdos.com")
+
+declare sub int21_call(dx,cx,bx,ax) inline("\x5A\x59\x5B\x58\xCD\x21")
+
+# define procedures
+declare sub printc(c)                    at bdos[0]
+declare sub println                      at bdos[3]
+declare sub print(str)                   at bdos[6]
+declare sub printi(val)                  at bdos[9]
+declare sub printhb(val)                 at bdos[12]
+declare sub printhw(val)                 at bdos[15]
+declare function fopenr(fname)           at bdos[18]
+declare function fopenw(fname)           at bdos[21]
+declare function fopena(fname)           at bdos[24]
+declare sub fclose(fhndl)                at bdos[27]
+declare sub fread(fhndl, buf)            at bdos[30]
+declare sub fwrite(fhndl, buf)           at bdos[33]
+declare sub truncate(fhndl)              at bdos[36]
+declare sub fileseek(fhndl, pos)         at bdos[39]
+declare function filepos(fhndl)          at bdos[42]
+declare function filesize(fhndl)         at bdos[45]
+declare sub bsave(fname, buf, size)      at bdos[48]
+declare function bload(fname, buf, size) at bdos[51]
+declare sub __getself(dst)               at bdos[54]
+declare sub getenv(name, dst)            at bdos[57]
+
+sub halt(code)
+        rcode = code
+        inline("\xB8\x03\x01\x50\xC3")
+end
+
+dim __p
+
+function paramstr(n)
+        return __p%[shl(n, 1)]
+end
+
+function paramcount
+        return __p%[-2]
+end
+
+# inititalization part
+
+initialization
+
+        # resize DOS memory for .COM (allocate 64k)
+        inline("\xb4\x4a\xbb\x00\x10\xcd\x21")
+
+        # parse parameters
+        dim p, plen, i, c
+
+        __p = FREE_MEMORY + 2
+        FREE_MEMORY = FREE_MEMORY + 130
+        __p%[0] = FREE_MEMORY
+        __getself(FREE_MEMORY)
+        FREE_MEMORY = FREE_MEMORY + len(FREE_MEMORY) + 1
+
+        plen = PEEK(128)
+        p = 129
+        i = 0
+        __p%[-2] = 0
+        while i < plen
+                c = PEEK(p)
+                if c > 32 then
+                        __p%[-2] = __p%[-2] + 1
+                        __p%[shl(__p%[-2], 1)] = FREE_MEMORY
+                        if c = '"' then
+                                p = p + 1
+                                i = i + 1
+                                c = PEEK(p)
+                                while (c <> '"') and (i < plen)
+                                        FREE_MEMORY[0] = c
+                                        FREE_MEMORY = FREE_MEMORY + 1
+                                        p = p + 1
+                                        i = i + 1
+                                        c = PEEK(p)
+                                end
+                                p = p + 1
+                                i = i + 1
+                        else
+                                while (c > ' ') and (i < plen)
+                                        FREE_MEMORY[0] = c
+                                        FREE_MEMORY = FREE_MEMORY + 1
+                                        p = p + 1
+                                        i = i + 1
+                                        c = PEEK(p)
+                                end
+                        end
+                        FREE_MEMORY[0] = 0
+                        FREE_MEMORY = FREE_MEMORY + 1
+                else
+                        p = p + 1
+                        i = i + 1
+                end
+        end
+end

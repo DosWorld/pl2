@@ -1,0 +1,255 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+include "pl2.pl2"
+include "bdos.pl2"
+
+sub assert(p1, p2, msg)
+        if p1 <> p2 then
+                print("Have ")
+                printi(p1)
+                print(", but expected ")
+                printi(p2)
+                print(" at ")
+                print(msg)
+                println()
+                if rcode = 0 then
+                        halt(1)
+                end
+        end
+        return 1
+end
+
+function test_param_order(p1, p2, p3)
+        assert(p1, 1, "test_param_order#1")
+        assert(p2, 2, "test_param_order#2")
+        assert(p3, 3, "test_param_order#3")
+        p1 = 5
+        p2 = 6
+        p3 = 7
+        assert(p1, 5, "test_param_order#4")
+        assert(p2, 6, "test_param_order#5")
+        assert(p3, 7, "test_param_order#6")
+        return 1
+end
+
+function test_expr(p1, p2, p3)
+        assert(p1, 1, "test_expr#1")
+        assert(p2, 2, "test_expr#2")
+        assert(p3, 3, "test_expr#3")
+        p1 = p1 + p2 * p3 + p1
+        assert(p1, 8, "test_expr#4")
+        assert(p2, 2, "test_expr#5")
+        assert(p3, 3, "test_expr#6")
+        return 1
+end
+
+function test_return(p1, p2, p3)
+        assert(p1, 1, "test_return#1")
+        assert(p2, 2, "test_return#2")
+        assert(p3, 3, "test_return#3")
+        return p1 + p2 * p3 + p1
+        return -1
+end
+
+function test_return2(p1, p2, p3)
+        assert(p1, 2, "test_return#1")
+        assert(p2, 3, "test_return#2")
+        assert(p3, 4, "test_return#3")
+        return p1 + p2 * p3 + p1
+        return -1
+end
+
+function test_while(p1)
+        dim i, r
+        i = 1
+        r = 0
+        while i <= p1
+                r = r + i
+                i = i + 1
+        end
+        return r
+end
+
+function test_local(p1, p2, p3)
+        dim l1, l2, l3
+        assert(p1, 1, "test_local#1")
+        assert(p2, 2, "test_local#2")
+        assert(p3, 3, "test_local#3")
+        l1 = p1 + 1
+        l2 = p2 + 1
+        l3 = p3 + 1
+        assert(p1, 1, "test_local#4")
+        assert(p2, 2, "test_local#5")
+        assert(p3, 3, "test_local#6")
+        assert(l1, 2, "test_local#7")
+        assert(l2, 3, "test_local#8")
+        assert(l3, 4, "test_local#9")
+        p1 = p1 + p2 * p3 + p1
+        p1 = l1 - 1
+        assert(p1, 1, "test_local#10")
+        assert(p2, 2, "test_local#11")
+        assert(p3, 3, "test_local#12")
+        assert(l1, 2, "test_local#13")
+        assert(l2, 3, "test_local#14")
+        assert(l3, 4, "test_local#15")
+        return 1
+end
+
+function test_compare
+        assert(1 < 2,  true,  "test_compare#1")
+        assert(1 <= 2, true,  "test_compare#2")
+        assert(1 > 2,  false, "test_compare#3")
+        assert(1 >= 2, false, "test_compare#4")
+
+        assert(2 < 1,  false,  "test_compare#5")
+        assert(2 <= 1, false,  "test_compare#6")
+        assert(2 > 1,  true,   "test_compare#7")
+        assert(2 >= 1, true,   "test_compare#8")
+
+        assert(2 < 2,  false,  "test_compare#9")
+        assert(2 <= 2, true,   "test_compare#10")
+        assert(2 > 2,  false,  "test_compare#11")
+        assert(2 >= 2, true,   "test_compare#12")
+
+        assert(2 = 2,  true,   "test_compare#13")
+        assert(2 <> 2, false,  "test_compare#14")
+        assert(1 = 2,  false,  "test_compare#15")
+        assert(1 <> 2, true,   "test_compare#16")
+        return 1
+end
+
+function test_if
+        dim k
+        k = 0
+        if 1 > 2 then
+                k = 1
+        end
+        assert(k, 0, "test_if#1")
+        k = 0
+        if 1 < 2 then
+                k = 1
+        end
+        assert(k, 1, "test_if#2")
+        k = 0
+        if 1 > 2 then
+                k = 1
+        else
+                k = 2
+        end
+        assert(k, 2, "test_if#3")
+        k = 0
+        if 1 < 2 then
+                k = 1
+        else
+                k = 2
+        end
+        assert(k, 1, "test_if#4")
+        k = 0
+        if 1 > 2 then
+                k = 1
+        elseif k = 0 then
+                k = 2
+        elseif 2 = 3 then
+                k = 3
+        end
+        assert(k, 2, "test_if#5")
+        k = 0
+        if 1 = 2 then
+                k = 1
+        elseif 1 = 0 then
+                k = 2
+        elseif 2 = 3 then
+                k = 3
+        end
+        assert(k, 0, "test_if#6")
+        k = 0
+        if 1 = 2 then
+                k = 1
+        elseif 1 = 0 then
+                k = 2
+        elseif 2 = 3 then
+                k = 3
+        elseif k = 0 then
+                k = 1
+        end
+        assert(k, 1, "test_if#7")
+        return 1
+end
+
+dim init_order
+
+initialization
+        assert(init_order, 0,   "initialization#0")
+        init_order = init_order + 1
+end
+
+initialization
+        assert(init_order, 1,   "initialization#1")
+        init_order = init_order + 1
+        return 1
+end
+
+initialization
+        assert(init_order, 2,   "initialization#2")
+        init_order = init_order + 1
+        return 1
+end
+
+finalization
+        if rcode = 0 then
+                print("Finalization tests\tOK\n")
+        end
+        return 1
+end
+
+finalization
+        init_order = init_order - 1
+        assert(init_order, 0,   "finalization#0")
+        return 1
+end
+
+finalization
+        init_order = init_order - 1
+        assert(init_order, 1,   "finalization#1")
+        return 1
+end
+
+finalization
+        init_order = init_order - 1
+        assert(init_order, 2,   "finalization#2")
+        return 1
+end
+
+sub main
+        print("Initialization tests\tOK\n")
+        assert(test_param_order(1, 2, 3), 1, "main#1")
+        assert(test_expr(1, 2, 3), 1, "main#2")
+        assert(test_local(1, 2, 3), 1, "main#3")
+        assert(test_return(1, 2, 3), 8, "test_return#4")
+        assert(test_return(1, 2, 3) + test_return2(2, 3, 4), 24, "test_return#5")
+        assert(test_while(4), 10, "test_while#1")
+        assert(test_compare(), 1, "main#4")
+        assert(test_if(), 1, "main#5")
+        print("Regular tests\tOK\n")
+end

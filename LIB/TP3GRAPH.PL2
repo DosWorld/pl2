@@ -1,0 +1,73 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+#-------------------------------------------------------------------
+# NOTE: For using this file, required file `GRAPH.BIN` from
+# Turbo Pascal 3.x installation.
+#
+const Graphics = file("GRAPH.BIN")
+#-------------------------------------------------------------------
+
+const North = 0, East  = 90, South = 180, West  = 270
+
+declare sub GraphMode                            at Graphics[0]
+declare sub GraphColorMode                       at Graphics[3]
+declare sub HiRes                                at Graphics[6]
+declare sub HiResColor(Color)                    at Graphics[9]
+declare sub Palette(N)                           at Graphics[12]
+declare sub GraphBackground(Color)               at Graphics[15]
+declare sub GraphWindow(X1, Y1, X2, Y2)          at Graphics[18]
+declare sub Plot(X, Y, Color)                    at Graphics[21]
+declare sub Draw(X1, Y1, X2, Y2, Color)          at Graphics[24]
+declare sub ColorTable(C1, C2, C3, C4)           at Graphics[27]
+declare sub Arc(X, Y, Angle, Radius, Color)      at Graphics[30]
+declare sub Circle(X, Y, Radius, Color)          at Graphics[33]
+declare sub GetPic(Seg, Buffer, X1, Y1, X2, Y2)  at Graphics[36]
+declare sub PutPic(Seg, Buffer, X, Y)            at Graphics[39]
+declare function GetDotColor(X, Y)               at Graphics[42]
+declare sub FillScreen(Color)                    at Graphics[45]
+declare sub FillShape(X, Y, FillCol, BorderCol)  at Graphics[48]
+declare sub FillPattern(X1, Y1, X2, Y2, Color)   at Graphics[51]
+declare sub Pattern(Seg, P)                      at Graphics[54]
+declare sub Back(Dist)                           at Graphics[57]
+declare sub ClearScreen                          at Graphics[60]
+declare sub Forwd(Dist)                          at Graphics[63]
+declare function Heading                         at Graphics[66]
+declare sub HideTurtle                           at Graphics[69]
+declare sub Home                                 at Graphics[72]
+declare sub NoWrap                               at Graphics[75]
+declare sub PenDown                              at Graphics[78]
+declare sub PenUp                                at Graphics[81]
+declare sub SetHeading(Angle)                    at Graphics[84]
+declare sub SetPenColor(Color)                   at Graphics[87]
+declare sub SetPosition(X, Y)                    at Graphics[90]
+declare sub ShowTurtle                           at Graphics[93]
+declare sub TurnLeft(Angle)                      at Graphics[96]
+declare sub TurnRight(Angle)                     at Graphics[99]
+declare sub TurtleDelay(Delay)                   at Graphics[102]
+declare sub TurtleWindow(X, Y, W, H)             at Graphics[105]
+declare function TurtleThere                     at Graphics[108]
+declare sub Wrap                                 at Graphics[111]
+declare function Xcor                            at Graphics[114]
+declare function Ycor                            at Graphics[117]

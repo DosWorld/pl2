@@ -1,0 +1,7 @@
+all: pl2.bin bdos.com
+
+pl2.bin: pl2.asm
+        msa2 pl2.asm -o pl2.bin -f bin
+
+bdos.com: bdos.c--
+        c-- /x /0 bdos.c--
