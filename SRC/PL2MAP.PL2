@@ -26,20 +26,30 @@ include "bdos.pl2"
 
 dim table
 
-sub main
-        dim ptr, type, show, ofs, name
+initialization
+
+        table = FREE_MEMORY
 
         print("PL/2-86 Compiler MAP-file converter  (c) 2020 DosWorld  MIT License\n")
+end
+
+function is_visible_type(type)
+        return (type = 'F') or (type = 'S') or (type = 'G') or (type = '!') or (type = '?')
+end
+
+sub main
+        dim ptr, type, tname, show, ofs, name, in_fname
 
         if paramcount() <> 1 then
                 print("\nUsage:\n\tMAP2TXT source.map\n")
                 halt(1)
         end
-        table = FREE_MEMORY
-        ptr = bload(paramstr(1), table)
+
+        in_fname = paramstr(1)
+        ptr = bload(in_fname, table)
         if ptr = 0 then
                 print("\nCould not load ")
-                print(paramstr(1))
+                print(in_fname)
                 println()
                 halt(1)
         end
@@ -49,19 +59,24 @@ sub main
                 ofs = table%[ptr + 4]
                 type =  table[ptr + 2]
                 name = table + ptr + 8
-                if (type = 'F') or (type = 'S') or (type = 'G') or (type = '!') or (type = '?') then
-                        printhw(ofs)
+                if is_visible_type(type) then
                         if type = 'F' then
-                                print("\tFUNC\t")
+                                tname = "FUNC"
                         elseif type = 'S' then
-                                print("\tSUB\t")
+                                tname = "SUB"
                         elseif type = 'G' then
-                                print("\tVAR\t")
+                                tname = "VAR"
                         elseif type = '!' then
-                                print("\tINIT\t")
+                                tname = "INIT"
                         elseif type = '?' then
-                                print("\tFINAL\t")
+                                tname = "FINAL"
+                        else
+                                tname = "???"
                         end
+                        printhw(ofs)
+                        printc('\t')
+                        print(tname)
+                        printc('\t')
                         print(name)
                         println()
                 end

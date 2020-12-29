@@ -5,3 +5,7 @@ pl2.bin: pl2.asm
 
 bdos.com: bdos.c--
         c-- /x /0 bdos.c--
+
+clean:
+	del *.bin
+	del *.com

@@ -387,6 +387,13 @@ sub nextlex
                 if c = '\\' then
                         i = i + 1
                         c = line[i]
+                        if c = 't' then
+                                c = 9
+                        elseif c = 'n' then
+                                c = 10
+                        elseif c = 'r' then
+                                c = 13
+                        end
                 end
                 lex_size = putb(lex, lex_size, c)
                 i = i + 1
@@ -1328,11 +1335,12 @@ initialization
         table_ptr = 0
         dict_ptr = -1
         code_ofs = 256
+
+        print("PL/2-86 Compiler  (c) 2020 DosWorld  MIT License\n")
 end
 
 sub main
         dim in_file
-        print("PL/2-86 Compiler  (c) 2020 DosWorld  MIT License\n")
         if paramcount() <> 1 then
                 print("\nUsage:\n\tPL2C source.pl2\n")
                 halt(1)

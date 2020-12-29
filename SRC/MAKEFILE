@@ -11,3 +11,6 @@ tests.com: tests.pl2 pl2c.com
 pl2map.com: pl2c.com pl2map.pl2
 	pl2c pl2map.pl2
 
+clean:
+	del *.com
+	del *.map
