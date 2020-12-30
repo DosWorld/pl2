@@ -379,32 +379,6 @@ sub pg_start
         code_ptr = putw(code, code_ptr, 86)
         def("FREE_MEMORY", SYM_GLOBAL, 0, code_ptr)
         code_ptr = putw(code, code_ptr, 0)
-
-        def("INCLUDE", LEX_INCLUDE, 0, 0)
-        def("SUB", LEX_SUB, 0, 0)
-        def("FUNCTION", LEX_FUNCTION, 0, 0)
-        def("DIM", LEX_DIM, 0, 0)
-        def("INITIALIZATION", LEX_INIT, 0, 0)
-        def("FINALIZATION", LEX_FINAL, 0, 0)
-        def("END", LEX_END, 0, 0)
-        def("IF", LEX_IF, 0, 0)
-        def("THEN", LEX_THEN, 0, 0)
-        def("ELSEIF", LEX_ELSEIF, 0, 0)
-        def("ELSE", LEX_ELSE, 0, 0)
-        def("WHILE", LEX_WHILE, 0, 0)
-        def("BREAK", LEX_BREAK, 0, 0)
-        def("CONTINUE", LEX_CONTINUE, 0, 0)
-        def("RETURN", LEX_RETURN, 0, 0)
-        def("AT", LEX_AT, 0, 0)
-        def("INLINE", LEX_INLINE, 0, 0)
-        def("TRUE", LEX_TRUE, 0, 0)
-        def("FALSE", LEX_FALSE, 0, 0)
-        def("NOT", LEX_NOT, 0, 0)
-        def("OR", LEX_OR, 0, 0)
-        def("AND", LEX_AND, 0, 0)
-        def("FILE", LEX_FILE, 0, 0)
-        def("DECLARE", LEX_DECLARE, 0, 0)
-        def("CONST", LEX_CONST, 0, 0)
 end
 
 sub gen_init(i, t)
@@ -501,7 +475,7 @@ sub expr(lvl)
                 code%[code_ptr - 2] = table%[var + DICT_OFS]
                 if accept('(') then
                         code_ptr = i
-                        while true
+                        while not is_lex(')')
                                 expr(0)
                                 putbin(1, "\x50")
                                 if not accept(',') then
@@ -533,7 +507,7 @@ sub expr(lvl)
                 code[code_ptr - 1] = -t
         elseif accept(SYM_FN) then
                 if accept('(') then
-                        while true
+                        while not is_lex(')')
                                 expr(0)
                                 putbin(1, "\x50")
                                 if not accept(',') then
@@ -555,7 +529,7 @@ sub expr(lvl)
                 gen_load_int(i)
         elseif accept(SYM_INLINE) then
                 if accept('(') then
-                        while true
+                        while not is_lex(')')
                                 expr(0)
                                 putbin(1, "\x50")
                                 if not accept(',') then
@@ -630,7 +604,7 @@ end
 function c_param_list
         dim res
         res = 0
-        while cur_lex_type <> ')'
+        while not is_lex(')')
                 res = res + 1
                 expr(0)
                 putbin(1, "\x50")
@@ -1122,7 +1096,7 @@ initialization
         FREE_MEMORY = FREE_MEMORY + 256
 
         stk_ret = FREE_MEMORY
-        FREE_MEMORY = FREE_MEMORY + 128
+        FREE_MEMORY = FREE_MEMORY + 256
 
         lex = FREE_MEMORY
         FREE_MEMORY = FREE_MEMORY + 1024
@@ -1132,7 +1106,7 @@ initialization
         FREE_MEMORY = FREE_MEMORY + 2048
         table = FREE_MEMORY
         FREE_MEMORY = FREE_MEMORY + 6144
-        code = table + 6144
+        code = FREE_MEMORY
 
         code_ptr = 256
         code_ofs = 256
@@ -1141,8 +1115,44 @@ initialization
         table_ptr = 0
         dict_ptr = -1
         code_ofs = 256
+end
 
+initialization
+        def("INCLUDE", LEX_INCLUDE, 0, 0)
+        def("SUB", LEX_SUB, 0, 0)
+        def("FUNCTION", LEX_FUNCTION, 0, 0)
+        def("DIM", LEX_DIM, 0, 0)
+        def("INITIALIZATION", LEX_INIT, 0, 0)
+        def("FINALIZATION", LEX_FINAL, 0, 0)
+        def("END", LEX_END, 0, 0)
+        def("IF", LEX_IF, 0, 0)
+        def("THEN", LEX_THEN, 0, 0)
+        def("ELSEIF", LEX_ELSEIF, 0, 0)
+        def("ELSE", LEX_ELSE, 0, 0)
+        def("WHILE", LEX_WHILE, 0, 0)
+        def("BREAK", LEX_BREAK, 0, 0)
+        def("CONTINUE", LEX_CONTINUE, 0, 0)
+        def("RETURN", LEX_RETURN, 0, 0)
+        def("AT", LEX_AT, 0, 0)
+        def("INLINE", LEX_INLINE, 0, 0)
+        def("TRUE", LEX_TRUE, 0, 0)
+        def("FALSE", LEX_FALSE, 0, 0)
+        def("NOT", LEX_NOT, 0, 0)
+        def("OR", LEX_OR, 0, 0)
+        def("AND", LEX_AND, 0, 0)
+        def("FILE", LEX_FILE, 0, 0)
+        def("DECLARE", LEX_DECLARE, 0, 0)
+        def("CONST", LEX_CONST, 0, 0)
+        def("INT_SIZE", SYM_CONST, 0, gen_word_size())
+end
+
+initialization
         print(get_name())
+
+        if paramcount() <> 1 then
+                print("\nUsage:\n\tPL2C source.pl2\n")
+                halt(1)
+        end
 
         getenv("PL2_HOME", lib_dir)
         if len(lib_dir) = 0 then
@@ -1181,11 +1191,6 @@ end
 
 sub main
         dim in_file
-
-        if paramcount() <> 1 then
-                print("\nUsage:\n\tPL2C source.pl2\n")
-                halt(1)
-        end
 
         in_file = paramstr(1)
         change_ext(out_file, in_file, ".com")

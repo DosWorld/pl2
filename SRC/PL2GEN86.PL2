@@ -26,6 +26,10 @@ const I86_MOV_AX = "\xb8.."
 const I86_CALL   = "\xe8.."
 const I86_JMP    = "\xe9.."
 
+function gen_word_size
+        return 2
+end
+
 sub gen_op(op)
         if op = '+' then
                 putbin(2, "\x01\xd8")
