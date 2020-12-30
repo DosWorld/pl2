@@ -38,7 +38,7 @@ sub gen_op(op)
         elseif op = '*' then
                 putbin(2, "\xf7\xeb")
         elseif op = '/' then
-                putbin(2, "\x31\xd2\xf7\xf3")
+                putbin(4, "\x31\xd2\xf7\xf3")
         elseif op = '=' then
                 putbin(9, "\x31\xC9\x39\xD8\x75\x01\x41\x89\xC8")
         elseif op = LEX_NE then
@@ -88,4 +88,35 @@ sub gen_load_int(dig)
         else
                 putbin(2, "\x31\xC0")
         end
+end
+
+sub gen_exe_header
+        dim bss_par, block_count, inlastblock, i
+
+        memfill(code + code_ofs - 32, 32, 0)
+        bss_par = &hffff - code_ptr + code_ofs
+        if bin_and(bss_par, &h000F) then
+                bss_par = shr(bss_par, 4) + 1
+        else
+                bss_par = shr(bss_par, 4)
+        end
+        inlastblock = mod(code_ptr - code_ofs, 512)
+        block_count = (code_ptr - code_ofs) / 512
+        if inlastblock then
+                block_count = block_count + 1
+        end
+
+        i = code_ofs - 32
+        code%[i] = &h5a4d
+        code%[i+ 2] = inlastblock
+        code%[i + 4] = block_count
+        code%[i + 8] = 2
+        code%[i + 10] = bss_par
+        code%[i + 12] = bss_par
+        code%[i + 14] = -&h10
+        code%[i + 16] = &hfffe
+        code%[i + 20] = code_ofs
+        code%[i + 22] = -&h10
+        code_ofs = i
+        code_ptr = code_ptr + 32
 end

@@ -22,6 +22,8 @@
 # SOFTWARE.
 #
 
+$compile exe
+
 $include "pl2.pl2"
 $include "bdos.pl2"
 

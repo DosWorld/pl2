@@ -27,13 +27,15 @@ dim line, line_ofs
 dim lex, lex_size
 dim table, table_ptr, dict_ptr
 
-dim f, buf, buf_ptr, buf_size, eof, eol
+dim f, buf, buf_ptr, buf_size, eol
 dim lnum, csub, cdim
 dim wh_break, wh_continue
 dim cur_lex, cur_lex_type, cur_lex_ptr
-dim out_file, map_file, out_lines
+dim in_file, out_file, map_file, out_lines
 dim lib_dir, have_lib_dir
 dim digit
 dim debug
 
+dim opt_map_write
+dim gen_target
 dim stk_ret

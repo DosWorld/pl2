@@ -26,7 +26,7 @@ function getchar
         dim cc
         if buf_ptr >= buf_size then
                 if fread(f, buf) = 0 then
-                        return 27
+                        return EOF
                 end
                 buf_ptr = 0
         end
@@ -95,7 +95,7 @@ sub nextline
                 if c > ' ' then
                         break
                 end
-                if c = 27 then
+                if c = EOF then
                         break
                 end
                 if c = 10 then
@@ -115,7 +115,7 @@ sub nextline
                 if c = 10 then
                         break
                 end
-                if c = 27 then
+                if c = EOF then
                         i = putb(line, i, c)
                         break
                 end
@@ -128,56 +128,6 @@ sub nextline
                 print(line)
                 print("]\n")
         end
-end
-
-sub def(name, type, p, ofs)
-        dim k, c, hcode
-
-        c = PEEK(name)
-        if not (is_id(c) or (c = 0))  then
-                error()
-        end
-        if debug then
-                printhw(ofs)
-                printc(' ')
-                printi(type)
-                printc(' ')
-                print(name)
-                println()
-        end
-        hcode = strhash(name)
-        k = putw(table, table_ptr, dict_ptr)
-        dict_ptr = table_ptr
-        table_ptr = putw(table, k, type)
-        table_ptr = putw(table, table_ptr, p)
-        table_ptr = putw(table, table_ptr, ofs)
-        table_ptr = putw(table, table_ptr, hcode)
-
-        while c
-                if not is_iddig(c) then
-                        error()
-                end
-                table_ptr = putb(table, table_ptr, c)
-                name = name + 1
-                c = PEEK(name)
-        end
-        table_ptr = putb(table, table_ptr, 0)
-end
-
-function lookup(name)
-        dim dptr,hcode
-
-        hcode = strhash(name)
-        dptr = dict_ptr
-        while dptr <> -1
-                if table%[dptr + DICT_HCD] = hcode then
-                        if strcmp(name, table + dptr + DICT_NAM) = 0 then
-                                break
-                        end
-                end
-                dptr = table%[dptr]
-        end
-        return dptr
 end
 
 sub nextlex
@@ -207,7 +157,7 @@ sub nextlex
                         cur_lex_type = LEX_EOL
                         break
                 end
-                if c = 27 then
+                if c = EOF then
                         break
                 end
                 i = i + 1
@@ -283,7 +233,7 @@ sub nextlex
                 c = 0
                 eol = TRUE
                 cur_lex_type = LEX_EOL
-        elseif c = 27 then
+        elseif c = EOF then
                 c = 0
                 cur_lex_type = LEX_EOF
         elseif c then
@@ -301,13 +251,19 @@ sub nextlex
                         else
                                 cur_lex_type = c
                         end
-                elseif c = '>' then
-                        if line[i] = '=' then
-                                lex_size = putb(lex, lex_size, '=')
+                elseif (c = '>') and (line[i] = '=') then
+                        lex_size = putb(lex, lex_size, '=')
+                        i = i + 1
+                        cur_lex_type = LEX_GE
+                elseif (c = '&') and (ucase(line[i]) = 'H') then
+                        cur_lex_type = LEX_DIGIT
+                        i = i + 1
+                        c = ucase(line[i])
+                        while is_hdig(c)
+                                digit = shl(digit, 4)
+                                digit = bin_or(digit, unhex(c))
                                 i = i + 1
-                                cur_lex_type = LEX_GE
-                        else
-                                cur_lex_type = c
+                                c = ucase(line[i])
                         end
                 else
                         cur_lex_type = c
@@ -371,8 +327,10 @@ sub expect2(w1, w2)
 end
 
 sub pg_start
-        putbin(3, I86_JMP)
-        putbin(3, I86_JMP)
+        if (gen_target = TARGET_COM) or (gen_target = TARGET_EXE) then
+                putbin(3, I86_JMP)
+                putbin(3, I86_JMP)
+        end
         def("RCODE", SYM_GLOBAL, 0, code_ptr)
         code_ptr = putw(code, code_ptr, 0)
         def("PLATFORM", SYM_GLOBAL, 0, code_ptr)
@@ -399,8 +357,10 @@ end
 sub pg_end
         dim i
 
-        # fix jump to main part
-        code%[code_ofs + 1] = code_ptr - 3 - code_ofs
+        if (gen_target = TARGET_COM) or (gen_target = TARGET_EXE) then
+                # fix jump to main part
+                code%[code_ofs + 1] = code_ptr - 3 - code_ofs
+        end
 
         # Call INITIALIZATION's
         gen_init(dict_ptr, SYM_INIT)
@@ -408,7 +368,7 @@ sub pg_end
         # Call Main
         i = lookup("MAIN")
         if i = -1 then
-                print("No main() sub here.\n")
+                print("No MAIN sub here.\n")
                 error()
         end
         gen_call(table%[i + DICT_OFS])
@@ -424,7 +384,7 @@ sub pg_end
 
         # Now, we know where program ends and where starts free memory
         i = lookup("FREE_MEMORY")
-        code%[table%[i + DICT_OFS]] = code_ptr
+        code%[table%[i + DICT_OFS]] = code%[table%[i + DICT_OFS]] + code_ptr
 end
 
 function is_lex(t)
@@ -447,14 +407,10 @@ sub expr(lvl)
         if accept('(') then
                 expr(lvl)
                 expect(')')
-        elseif accept(LEX_TRUE) then
-                gen_load_int(1)
-        elseif accept(LEX_FALSE) then
-                gen_load_int(0)
-        elseif cur_lex_type = LEX_CHAR then
+        elseif is_lex(LEX_CHAR) then
                 gen_load_int(lex[1])
                 expect(LEX_CHAR)
-        elseif cur_lex_type = LEX_STR then
+        elseif is_lex(LEX_STR) then
                 unesc()
                 putbin(3, I86_CALL)
                 ofs = code_ptr
@@ -627,7 +583,7 @@ sub statements
                         continue
                 end
 
-                if (cur_lex_type = LEX_END) or (cur_lex_type = LEX_ELSEIF) or (cur_lex_type = LEX_ELSE) or (cur_lex_type = LEX_EOF) then
+                if is_lex(LEX_END) or is_lex(LEX_ELSEIF) or is_lex(LEX_ELSE) or is_lex(LEX_EOF) then
                         return
                 end
 
@@ -696,7 +652,7 @@ sub statements
                         putbin(3, I86_JMP)
                         code%[code_ptr - 2] = wh_break - code_ptr
                 elseif accept(LEX_RETURN) then
-                        if cur_lex_type <> LEX_EOL then
+                        if not is_lex(LEX_EOL) then
                                 expr(0)
                         end
                         putbin(3, I86_JMP)
@@ -832,7 +788,7 @@ sub c_sub(type)
         loc_ptr = code_ptr
         expect(LEX_ID)
         if accept('(') then
-                while TRUE
+                while not is_lex(')')
                         pcount = pcount + 1
                         def(lex, SYM_PARAM, pcount, pcount)
                         expect(LEX_ID)
@@ -875,7 +831,7 @@ sub c_const
                 if accept(LEX_FILE) then
                         expect('(')
                         val = code_ptr
-                        if cur_lex_type <> LEX_STR then
+                        if not is_lex(LEX_STR) then
                                 error()
                         end
                         unesc()
@@ -896,13 +852,13 @@ sub c_const
                         code_ptr = code_ptr + bytes
                         expect(LEX_STR)
                         expect(')')
-                elseif cur_lex_type = LEX_STR then
+                elseif is_lex(LEX_STR) then
                         unesc()
                         val = code_ptr
                         putbin(lex_size, lex)
                         putbin(1, "\x00")
                         expect(LEX_STR)
-                elseif cur_lex_type = LEX_CHAR then
+                elseif is_lex(LEX_CHAR) then
                         val = lex[1]
                         expect(LEX_CHAR)
                 else
@@ -951,7 +907,7 @@ sub c_declare
                 expect(']')
         elseif accept(LEX_INLINE) then
                 expect('(')
-                if cur_lex_type <> LEX_STR then
+                if not is_lex(LEX_STR) then
                         error()
                 end
                 unesc()
@@ -1002,7 +958,7 @@ sub c_initial_final(t)
         table_ptr = save_table_ptr
 end
 
-function compile(fname)
+function c_file(fname)
         dim save_f, save_buf_ptr, save_lnum
         dim total_lines
 
@@ -1028,7 +984,6 @@ function compile(fname)
         println()
         buf_ptr  = buf_size + 1
         buf = buf + 128
-        eof = FALSE
         eol = FALSE
         lnum = 0
 
@@ -1056,14 +1011,44 @@ function compile(fname)
                 elseif accept(LEX_FINAL) then
                         c_initial_final(SYM_DONE)
                 elseif accept('$') then
-                        if accept(LEX_INCLUDE) then
-                                if cur_lex_type <> LEX_STR then
+                        if strcmp(lex, "INCLUDE") = 0 then
+                                nextlex()
+                                if not is_lex(LEX_STR) then
                                         error()
                                 end
                                 unesc()
-                                total_lines = total_lines + compile(lex)
+                                total_lines = total_lines + c_file(lex)
                                 nextline()
                                 nextlex()
+                        elseif strcmp(lex, "COMPILE") = 0 then
+                                nextlex()
+                                if strcmp(lex, "COM") = 0 then
+                                        nextlex()
+                                        gen_target = TARGET_COM
+                                elseif strcmp(lex, "EXE") = 0 then
+                                        nextlex()
+                                        gen_target = TARGET_EXE
+                                else
+                                        error()
+                                end
+                                expect(LEX_EOL)
+                        elseif strcmp(lex, "OPTION") = 0 then
+                                nextlex()
+                                if strcmp(lex, "MAP") = 0 then
+                                        nextlex()
+                                        if strcmp(lex, "ON") = 0 then
+                                                nextlex()
+                                                opt_map_write = true
+                                        elseif strcmp(lex, "OFF") = 0 then
+                                                nextlex()
+                                                opt_map_write = false
+                                        else
+                                                error()
+                                        end
+                                else
+                                        error()
+                                end
+                                expect(LEX_EOL)
                         else
                                 error()
                         end
@@ -1078,7 +1063,6 @@ function compile(fname)
         f = save_f
         buf_ptr = save_buf_ptr
         lnum = save_lnum
-        eof = FALSE
         cur_lex_type = 0
         return total_lines
 end
@@ -1115,10 +1099,11 @@ initialization
         table_ptr = 0
         dict_ptr = -1
         code_ofs = 256
+
+        gen_target = TARGET_COM
 end
 
 initialization
-        def("INCLUDE", LEX_INCLUDE, 0, 0)
         def("SUB", LEX_SUB, 0, 0)
         def("FUNCTION", LEX_FUNCTION, 0, 0)
         def("DIM", LEX_DIM, 0, 0)
@@ -1134,9 +1119,8 @@ initialization
         def("CONTINUE", LEX_CONTINUE, 0, 0)
         def("RETURN", LEX_RETURN, 0, 0)
         def("AT", LEX_AT, 0, 0)
+        def("AS", LEX_AS, 0, 0)
         def("INLINE", LEX_INLINE, 0, 0)
-        def("TRUE", LEX_TRUE, 0, 0)
-        def("FALSE", LEX_FALSE, 0, 0)
         def("NOT", LEX_NOT, 0, 0)
         def("OR", LEX_OR, 0, 0)
         def("AND", LEX_AND, 0, 0)
@@ -1144,6 +1128,9 @@ initialization
         def("DECLARE", LEX_DECLARE, 0, 0)
         def("CONST", LEX_CONST, 0, 0)
         def("INT_SIZE", SYM_CONST, 0, gen_word_size())
+        def("EOF", SYM_CONST, 0, 26)
+        def("TRUE", SYM_CONST, 0, 1)
+        def("FALSE", SYM_CONST, 0, 0)
 end
 
 initialization
@@ -1175,28 +1162,35 @@ finalization
                 return
         end
 
-        print("Save ")
-        print(out_file)
-        printc(' ')
-        printi(out_lines)
-        print(" lines, ")
-        printi(code_ptr - code_ofs)
-        print(" bytes\n")
-
-        bsave(out_file, code + code_ofs, code_ptr - code_ofs)
-
-        table_ptr = putw(table, table_ptr, dict_ptr)
-        bsave(map_file, table, table_ptr)
+        if (gen_target = TARGET_COM) or (gen_target = TARGET_EXE) then
+                if gen_target = TARGET_COM then
+                        change_ext(out_file, in_file, ".com")
+                elseif gen_target = TARGET_EXE then
+                        change_ext(out_file, in_file, ".exe")
+                end
+                print("Save ")
+                print(out_file)
+                printc(' ')
+                printi(out_lines)
+                print(" lines, ")
+                printi(code_ptr - code_ofs)
+                print(" bytes\n")
+                if gen_target = TARGET_EXE then
+                        gen_exe_header()
+                end
+                bsave(out_file, code + code_ofs, code_ptr - code_ofs)
+        end
+        if opt_map_write then
+                table_ptr = putw(table, table_ptr, dict_ptr)
+                bsave(map_file, table, table_ptr)
+        end
 end
 
 sub main
-        dim in_file
-
         in_file = paramstr(1)
-        change_ext(out_file, in_file, ".com")
         change_ext(map_file, in_file, ".map")
         pg_start()
-        out_lines = compile(in_file)
+        out_lines = c_file(in_file)
         pg_end()
         halt(0)
 end

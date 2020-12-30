@@ -252,5 +252,8 @@ sub main
         assert(test_while(4), 10, "test_while#1")
         assert(test_compare(), 1, "main#4")
         assert(test_if(), 1, "main#5")
+        assert(&hf, 15, "hex value converion#1")
+        assert(&h0f, 15, "hex value converion#2")
+        assert(&h00f, 15, "hex value converion#3")
         print("Regular tests\tOK\n")
 end

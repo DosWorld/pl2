@@ -97,7 +97,7 @@ void pascal fclose(word f) { BX = f; AH = 0x3E; $INT 0x21; }
 
 char pascal fread(word f, word buf) {
         DI = buf;
-        CX = 128; AL = 27;
+        CX = 128; AL = 26;
         $CLD; $REPZ; $STOSB;
         AH = 0x3F; CX = 128; DX = buf; BX = f;
         $INT 0x21;

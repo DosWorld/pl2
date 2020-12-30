@@ -49,6 +49,16 @@ function is_iddig(c)
         return is_id(c) or is_digit(c)
 end
 
+function is_hdig(c)
+        if is_digit(c) then
+                return true
+        end
+        if (c >= 'A') and (c <= 'F') then
+                return true
+        end
+        return false
+end
+
 sub change_ext(dst, src, new_ext)
         dim n, k
         n = 0
@@ -88,3 +98,53 @@ sub basename(dst, src)
         strcpy(dst, src + n)
 end
 
+
+sub def(name, type, p, ofs)
+        dim k, c, hcode
+
+        c = PEEK(name)
+        if not (is_id(c) or (c = 0))  then
+                error()
+        end
+        if debug then
+                printhw(ofs)
+                printc(' ')
+                printi(type)
+                printc(' ')
+                print(name)
+                println()
+        end
+        hcode = strhash(name)
+        k = putw(table, table_ptr, dict_ptr)
+        dict_ptr = table_ptr
+        table_ptr = putw(table, k, type)
+        table_ptr = putw(table, table_ptr, p)
+        table_ptr = putw(table, table_ptr, ofs)
+        table_ptr = putw(table, table_ptr, hcode)
+
+        while c
+                if not is_iddig(c) then
+                        error()
+                end
+                table_ptr = putb(table, table_ptr, c)
+                name = name + 1
+                c = PEEK(name)
+        end
+        table_ptr = putb(table, table_ptr, 0)
+end
+
+function lookup(name)
+        dim dptr,hcode
+
+        hcode = strhash(name)
+        dptr = dict_ptr
+        while dptr <> -1
+                if table%[dptr + DICT_HCD] = hcode then
+                        if strcmp(name, table + dptr + DICT_NAM) = 0 then
+                                break
+                        end
+                end
+                dptr = table%[dptr]
+        end
+        return dptr
+end
