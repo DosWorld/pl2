@@ -1,0 +1,90 @@
+#
+# MIT License
+#
+# Copyright (c) 2020 Viacheslav Komenda
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+sub error
+        printi(lnum)
+        print(":ERROR:")
+        print(line)
+        println()
+        halt(1)
+end
+
+function putb(arr, ofs, b)
+        poke(arr + ofs, b)
+        return ofs + 1
+end
+
+function putw(arr, ofs, w)
+        pokei(arr + ofs, w)
+        return ofs + 2
+end
+
+sub putbin(count, str)
+        memcopy(code + code_ptr, str, count)
+        code_ptr = code_ptr + count
+end
+
+function is_iddig(c)
+        return is_id(c) or is_digit(c)
+end
+
+sub change_ext(dst, src, new_ext)
+        dim n, k
+        n = 0
+        while peek(src+n)
+                n = n + 1
+        end
+        k = n
+        while n <> 0
+                if peek(src+n) = '.' then
+                        break
+                end
+                n = n - 1
+        end
+        if (n = 0) and (peek(src) <> '.') then
+                n = k
+        end
+        memcopy(dst, src, n)
+        strcpy(dst + n, new_ext)
+end
+
+sub basename(dst, src)
+        dim n
+        n = 0
+        while peek(src+n)
+                n = n + 1
+        end
+        while n >= 0
+                if peek(src+n) = '\\' then
+                        break
+                end
+                if peek(src+n) = '/' then
+                        break
+                end
+                n = n - 1
+        end
+        n = n + 1
+        strcpy(dst, src + n)
+end
+

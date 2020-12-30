@@ -21,8 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-include "pl2.pl2"
-include "bdos.pl2"
+
+$include "pl2.pl2"
+$include "bdos.pl2"
+
+$include "pl2const.pl2"
 
 dim table
 
@@ -34,14 +37,14 @@ initialization
 end
 
 function is_visible_type(type)
-        return (type = 'F') or (type = 'S') or (type = 'G') or (type = '!') or (type = '?')
+        return (type = SYM_FN) or (type = SYM_SUB) or (type = SYM_GLOBAL) or (type = SYM_INIT) or (type = SYM_DONE)
 end
 
 sub main
         dim ptr, type, tname, show, ofs, name, in_fname
 
         if paramcount() <> 1 then
-                print("\nUsage:\n\tMAP2TXT source.map\n")
+                print("\nUsage:\n\tPL2MAP file.map\n")
                 halt(1)
         end
 
@@ -56,19 +59,19 @@ sub main
         ptr = table%[ptr - 2]
         print("\nADDR\tTYPE\t\NAME\n\n")
         while ptr <> -1
-                ofs = table%[ptr + 4]
-                type =  table[ptr + 2]
-                name = table + ptr + 8
+                ofs = table%[ptr + DICT_OFS]
+                type =  table%[ptr + DICT_TYP]
+                name = table + ptr + DICT_NAM
                 if is_visible_type(type) then
-                        if type = 'F' then
+                        if type = SYM_FN then
                                 tname = "FUNC"
-                        elseif type = 'S' then
+                        elseif type = SYM_SUB then
                                 tname = "SUB"
-                        elseif type = 'G' then
+                        elseif type = SYM_GLOBAL then
                                 tname = "VAR"
-                        elseif type = '!' then
+                        elseif type = SYM_INIT then
                                 tname = "INIT"
-                        elseif type = '?' then
+                        elseif type = SYM_DONE then
                                 tname = "FINAL"
                         else
                                 tname = "???"

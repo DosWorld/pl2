@@ -22,22 +22,18 @@
 # SOFTWARE.
 #
 
-$include "tp3graph.pl2"
+dim code, code_ptr, code_ofs
+dim line, line_ofs
+dim lex, lex_size
+dim table, table_ptr, dict_ptr
 
-function GetKey
-        inline("\x31\xc0\xcd\x16")
-end
+dim f, buf, buf_ptr, buf_size, eof, eol
+dim lnum, csub, cdim
+dim wh_break, wh_continue
+dim cur_lex, cur_lex_type, cur_lex_ptr
+dim out_file, map_file, out_lines
+dim lib_dir, have_lib_dir
+dim digit
+dim debug
 
-sub DrawBox(x, y, w, h)
-        Draw(x, y, x + w, y, 1)
-        Draw(x, y, x, y + h, 1)
-        Draw(x, y + h, x + w, y + h, 1)
-        Draw(x + w, y + h, x + w, y, 1)
-end
-
-sub main
-       HiRes()
-       HiResColor(1)
-       DrawBox(0, 0, 319, 199 - 20)
-       GetKey()
-end
+dim stk_ret

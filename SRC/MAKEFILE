@@ -1,16 +1,16 @@
-all: tests.com pl2map.com
+all: tests.com map2text.com
 
-pl2c.com: pl2c.pl2
-        pl2c pl2c.pl2
+pl2c86.com: pl2c86.pl2 pl2c.pl2 pl2const.pl2 pl2sub.pl2 pl2var.pl2 pl2gen86.pl
+        pl2c86 pl2c86.pl2
         del tests.com
 
-tests.com: tests.pl2 pl2c.com
-        pl2c tests.pl2
+tests.com: tests.pl2 pl2c86.com
+        pl2c86 tests.pl2
         tests.com
 
-pl2map.com: pl2c.com pl2map.pl2
-	pl2c pl2map.pl2
+map2text.com: pl2c86.com map2text.pl2
+        pl2c86 map2text.pl2
 
 clean:
-	del *.com
-	del *.map
+        del *.com
+        del *.map

@@ -22,22 +22,15 @@
 # SOFTWARE.
 #
 
-$include "tp3graph.pl2"
+$include "pl2.pl2"
+$include "bdos.pl2"
 
-function GetKey
-        inline("\x31\xc0\xcd\x16")
+function get_name
+        return "PL/2-86 Compiler  (c) 2020 DosWorld  MIT License\n"
 end
 
-sub DrawBox(x, y, w, h)
-        Draw(x, y, x + w, y, 1)
-        Draw(x, y, x, y + h, 1)
-        Draw(x, y + h, x + w, y + h, 1)
-        Draw(x + w, y + h, x + w, y, 1)
-end
-
-sub main
-       HiRes()
-       HiResColor(1)
-       DrawBox(0, 0, 319, 199 - 20)
-       GetKey()
-end
+$include "pl2const.pl2"
+$include "pl2var.pl2"
+$include "pl2sub.pl2"
+$include "pl2gen86.pl2"
+$include "pl2c.pl2"
