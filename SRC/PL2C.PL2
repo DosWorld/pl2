@@ -783,18 +783,14 @@ sub c_const
                         end
                         unesc()
                         bytes = bload(lex, code + code_ptr)
+                        if (bytes = 0) and have_lib_dir then
+                                t = code + code_ptr
+                                strcpy(t, lib_dir)
+                                basename(t + len(lib_dir), lex)
+                                bytes = bload(t, t)
+                        end
                         if bytes = 0 then
-                                if have_lib_dir then
-                                        strcpy(FREE_MEMORY, lib_dir)
-                                        bytes = len(lib_dir)
-                                        basename(FREE_MEMORY + bytes, lex)
-                                        bytes = bload(FREE_MEMORY, code + code_ptr)
-                                        if bytes = 0 then
-                                                error()
-                                        end
-                                else
-                                        error()
-                                end
+                                error()
                         end
                         code_ptr = code_ptr + bytes
                         expect(LEX_STR)
@@ -922,21 +918,17 @@ function c_file(fname)
         total_lines = 0
         save_f = f
         save_buf_ptr = buf_ptr
-        save_lnum = lnum
         f = fopenr(fname)
-        if f = 0 then
-                if have_lib_dir then
-                        strcpy(FREE_MEMORY, lib_dir)
-                        save_lnum = len(lib_dir)
-                        basename(FREE_MEMORY + save_lnum, fname)
-                        f = fopenr(FREE_MEMORY)
-                        if f = 0 then
-                                error()
-                        end
-                else
-                        error()
-                end
+        if (f = 0) and have_lib_dir then
+                save_lnum = code + code_ptr
+                strcpy(save_lnum, lib_dir)
+                basename(save_lnum + len(lib_dir), fname)
+                f = fopenr(save_lnum)
         end
+        if f = 0 then
+                error()
+        end
+        save_lnum = lnum
         print(fname)
         println()
         buf_ptr  = buf_size + 1

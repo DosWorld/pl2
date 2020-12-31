@@ -66,7 +66,7 @@ end
 sub change_ext(dst, src, new_ext)
         dim n, k
         n = 0
-        while peek(src+n)
+        while peek(src + n)
                 n = n + 1
         end
         k = n
@@ -84,16 +84,14 @@ sub change_ext(dst, src, new_ext)
 end
 
 sub basename(dst, src)
-        dim n
+        dim n, c
         n = 0
-        while peek(src+n)
+        while peek(src + n)
                 n = n + 1
         end
-        while n >= 0
-                if peek(src+n) = '\\' then
-                        break
-                end
-                if peek(src+n) = '/' then
+        while n <> -1
+                c = peek(src + n)
+                if (c = '\\') or (c = '/') then
                         break
                 end
                 n = n - 1

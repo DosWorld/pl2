@@ -119,11 +119,12 @@ end
 sub gen_init
         if gen_target = TARGET_COM then
                 code_ofs = &H0100
-                code_ptr = code_ofs
+                code_ptr = &H0100
                 putbin(3, I86_JMP)
         elseif gen_target = TARGET_EXE then
-                code_ofs = &H0100
-                code_ptr = code_ofs
+#                code_ofs = &H0100
+                code_ofs = 0
+                code_ptr = 0
         end
         def("EXITPROC", SYM_GLOBAL, 0, code_ptr)
         code_ptr = putw(code, code_ptr, 0)
@@ -150,9 +151,8 @@ sub gen_initfinal(i, t)
 end
 
 sub gen_exe_header(entry_point)
-        dim bss_par, block_count, inlastblock, i
+        dim bss_par, block_count, inlastblock
 
-        memfill(code + code_ofs - 32, 32, 0)
         bss_par = &hffff - code_ptr + code_ofs
         if bin_and(bss_par, &h000F) then
                 bss_par = shr(bss_par, 4) + 1
@@ -165,19 +165,22 @@ sub gen_exe_header(entry_point)
                 block_count = block_count + 1
         end
 
-        i = code_ofs - 32
-        code%[i] = &H5A4D
-        code%[i + 2] = inlastblock
-        code%[i + 4] = block_count
-        code%[i + 8] = 2
-        code%[i + 10] = bss_par
-        code%[i + 12] = bss_par
-        code%[i + 14] = &HFFF0 #
-        code%[i + 16] = &HFFFE
-        code%[i + 20] = entry_point
-        code%[i + 22] = &HFFF0 #
         code = code - 32
         code_ptr = code_ptr + 32
+
+        memfill(code, 32, 0)
+        code%[0] = &H5A4D
+        code%[2] = inlastblock
+        code%[4] = block_count
+        code%[8] = 2
+        code%[10] = bss_par
+        code%[12] = bss_par
+#        code%[i + 14] = &HFFF0 #
+        code%[16] = &HFFFE
+        code%[20] = entry_point
+#        code%[i + 22] = &HFFF0 #
+#        code = code - 32
+#        code_ptr = code_ptr + 32
 end
 
 sub gen_done
@@ -190,6 +193,7 @@ sub gen_done
                 entry_point = &H0100
         elseif gen_target = TARGET_EXE then
                 entry_point = code_ptr
+                putbin(4, "\x0E\x0E\x1F\x07")
         end
 
         # Call INITIALIZATION's
