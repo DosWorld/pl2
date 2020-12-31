@@ -131,7 +131,7 @@ sub nextline
 end
 
 sub nextlex
-        dim i, c
+        dim i, c, c2
 
         if cur_lex_type = LEX_EOF then
                 if debug then
@@ -165,17 +165,15 @@ sub nextlex
         end
         if is_id(c) then
                 cur_lex_type = LEX_ID
-                while is_iddig(c) <> 0
+                while is_iddig(c)
                         lex_size = putb(lex, lex_size, ucase(c))
                         i = i + 1
                         c = line[i]
                 end
         elseif is_digit(c) then
                 cur_lex_type = LEX_DIGIT
-                while is_digit(c) <> 0
-                        digit = digit * 10
-                        lex_size = putb(lex, lex_size, c)
-                        digit = digit + c - '0'
+                while is_digit(c)
+                        digit = digit * 10 + c - '0'
                         i = i + 1
                         c = line[i]
                 end
@@ -239,29 +237,34 @@ sub nextlex
         elseif c then
                 lex_size = putb(lex, lex_size, c)
                 i = i + 1
-                if c = '<' then
-                        if line[i] = '=' then
+                c2 = ucase(line[i])
+                if (c = '<') and (c2 = '=') then
                                 lex_size = putb(lex, lex_size, '=')
                                 i = i + 1
                                 cur_lex_type = LEX_LE
-                        elseif line[i] = '>' then
+                elseif (c = '<') and (c2 = '>') then
                                 lex_size = putb(lex, lex_size, '>')
                                 i = i + 1
                                 cur_lex_type = LEX_NE
-                        else
-                                cur_lex_type = c
-                        end
-                elseif (c = '>') and (line[i] = '=') then
+                elseif (c = '>') and (c2 = '=') then
                         lex_size = putb(lex, lex_size, '=')
                         i = i + 1
                         cur_lex_type = LEX_GE
-                elseif (c = '&') and (ucase(line[i]) = 'H') then
+                elseif (c = '&') and (c2 = 'H') then
                         cur_lex_type = LEX_DIGIT
                         i = i + 1
                         c = ucase(line[i])
                         while is_hdig(c)
-                                digit = shl(digit, 4)
-                                digit = bin_or(digit, unhex(c))
+                                digit = bin_or(shl(digit, 4), unhex(c))
+                                i = i + 1
+                                c = ucase(line[i])
+                        end
+                elseif (c = '&') and (c2 = 'B') then
+                        cur_lex_type = LEX_DIGIT
+                        i = i + 1
+                        c = ucase(line[i])
+                        while is_bdig(c)
+                                digit = bin_or(shl(digit, 1), c - '0')
                                 i = i + 1
                                 c = ucase(line[i])
                         end
@@ -324,67 +327,6 @@ sub expect2(w1, w2)
         if not accept2(w1, w2) then
                 error()
         end
-end
-
-sub pg_start
-        if (gen_target = TARGET_COM) or (gen_target = TARGET_EXE) then
-                putbin(3, I86_JMP)
-                putbin(3, I86_JMP)
-        end
-        def("RCODE", SYM_GLOBAL, 0, code_ptr)
-        code_ptr = putw(code, code_ptr, 0)
-        def("PLATFORM", SYM_GLOBAL, 0, code_ptr)
-        code_ptr = putw(code, code_ptr, 86)
-        def("FREE_MEMORY", SYM_GLOBAL, 0, code_ptr)
-        code_ptr = putw(code, code_ptr, 0)
-end
-
-sub gen_init(i, t)
-        while i <> -1
-                if table%[i + DICT_TYP] = t then
-                        if t = SYM_INIT then
-                                gen_init(table%[i], t)
-                                gen_call(table%[i + DICT_OFS])
-                                return
-                        elseif t = SYM_DONE then
-                                gen_call(table%[i + DICT_OFS])
-                        end
-                end
-                i = table%[i]
-        end
-end
-
-sub pg_end
-        dim i
-
-        if (gen_target = TARGET_COM) or (gen_target = TARGET_EXE) then
-                # fix jump to main part
-                code%[code_ofs + 1] = code_ptr - 3 - code_ofs
-        end
-
-        # Call INITIALIZATION's
-        gen_init(dict_ptr, SYM_INIT)
-
-        # Call Main
-        i = lookup("MAIN")
-        if i = -1 then
-                print("No MAIN sub here.\n")
-                error()
-        end
-        gen_call(table%[i + DICT_OFS])
-
-        # fix jmp for halt (on halt will jmp here)
-        code%[code_ofs + 6 - 2] = code_ptr - code_ofs - 6
-
-        # Gen call all FINALIZATION's
-        gen_init(dict_ptr, SYM_DONE)
-        putbin(1, "\xA0")
-        code_ptr = putw(code, code_ptr, code_ofs + 6)
-        putbin(4, "\xB4\x4C\xCD\x21")
-
-        # Now, we know where program ends and where starts free memory
-        i = lookup("FREE_MEMORY")
-        code%[table%[i + DICT_OFS]] = code%[table%[i + DICT_OFS]] + code_ptr
 end
 
 function is_lex(t)
@@ -604,7 +546,6 @@ sub statements
                                 exit_jmp = code_ptr
                                 have_else = TRUE
                                 code%[else_jmp - 2] = code_ptr - else_jmp
-
                                 expr(0)
                                 putbin(7, "\x85\xc0\x75\x03\xe9..")
                                 else_jmp = code_ptr
@@ -630,6 +571,7 @@ sub statements
                         end
                         expect(LEX_END)
                 elseif accept(LEX_WHILE) then
+                        gen_calign()
                         old_wh_continue = wh_continue
                         old_wh_break = wh_break
                         wh_continue = code_ptr
@@ -641,6 +583,7 @@ sub statements
                         expect(LEX_END)
                         putbin(3, I86_JMP)
                         code%[code_ptr - 2] = wh_continue - code_ptr
+                        gen_calign()
                         wh_break = wh_break + 3
                         code%[wh_break - 2] = code_ptr - wh_break
                         wh_continue = old_wh_continue
@@ -777,6 +720,7 @@ sub c_sub(type)
         dim save_buf_ptr, loc_ptr, i
 
         stk_ret%[0] = 0
+        gen_calign()
         def(lex, type, 0, code_ptr)
         csub = dict_ptr
         cdim = 0
@@ -808,9 +752,11 @@ sub c_sub(type)
         gen_ret(pcount)
         dict_ptr = save_dict_ptr
         table_ptr = save_table_ptr
+        gen_calign()
 end
 
 sub c_dim
+        gen_dalign()
         while true
                 def(lex, SYM_GLOBAL, 0, code_ptr)
                 expect(LEX_ID)
@@ -830,6 +776,7 @@ sub c_const
                 expect('=')
                 if accept(LEX_FILE) then
                         expect('(')
+                        gen_dalign()
                         val = code_ptr
                         if not is_lex(LEX_STR) then
                                 error()
@@ -854,6 +801,7 @@ sub c_const
                         expect(')')
                 elseif is_lex(LEX_STR) then
                         unesc()
+                        gen_dalign()
                         val = code_ptr
                         putbin(lex_size, lex)
                         putbin(1, "\x00")
@@ -936,6 +884,7 @@ sub c_initial_final(t)
         dim loc_ptr
         dim save_dict_ptr, save_table_ptr
 
+        gen_calign()
         stk_ret%[0] = 0
         def("", t, 0, code_ptr)
         expect(LEX_EOL)
@@ -956,6 +905,14 @@ sub c_initial_final(t)
 
         dict_ptr = save_dict_ptr
         table_ptr = save_table_ptr
+        gen_calign()
+end
+
+sub check_inited
+        if not gen_inited then
+                gen_inited = true
+                gen_init()
+        end
 end
 
 function c_file(fname)
@@ -997,18 +954,25 @@ function c_file(fname)
                         continue
                 end
                 if accept(LEX_SUB) then
+                        check_inited()
                         c_sub(SYM_SUB)
                 elseif accept(LEX_FUNCTION) then
+                        check_inited()
                         c_sub(SYM_FN)
                 elseif accept(LEX_DIM) then
+                        check_inited()
                         c_dim()
                 elseif accept(LEX_DECLARE) then
+                        check_inited()
                         c_declare()
                 elseif accept(LEX_CONST) then
+                        check_inited()
                         c_const()
                 elseif accept(LEX_INIT) then
+                        check_inited()
                         c_initial_final(SYM_INIT)
                 elseif accept(LEX_FINAL) then
+                        check_inited()
                         c_initial_final(SYM_DONE)
                 elseif accept('$') then
                         if strcmp(lex, "INCLUDE") = 0 then
@@ -1045,6 +1009,14 @@ function c_file(fname)
                                         else
                                                 error()
                                         end
+                                elseif strcmp(lex, "CODE_ALIGN") = 0 then
+                                        nextlex()
+                                        gen_code_align = digit
+                                        expect(LEX_DIGIT)
+                                elseif strcmp(lex, "DATA_ALIGN") = 0 then
+                                        nextlex()
+                                        gen_data_align = digit
+                                        expect(LEX_DIGIT)
                                 else
                                         error()
                                 end
@@ -1101,6 +1073,8 @@ initialization
         code_ofs = 256
 
         gen_target = TARGET_COM
+        gen_code_align = 2
+        gen_data_align = 2
 end
 
 initialization
@@ -1175,9 +1149,6 @@ finalization
                 print(" lines, ")
                 printi(code_ptr - code_ofs)
                 print(" bytes\n")
-                if gen_target = TARGET_EXE then
-                        gen_exe_header()
-                end
                 bsave(out_file, code + code_ofs, code_ptr - code_ofs)
         end
         if opt_map_write then
@@ -1189,8 +1160,7 @@ end
 sub main
         in_file = paramstr(1)
         change_ext(map_file, in_file, ".map")
-        pg_start()
         out_lines = c_file(in_file)
-        pg_end()
+        gen_done()
         halt(0)
 end

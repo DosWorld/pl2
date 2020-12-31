@@ -45,6 +45,7 @@ void pascal printhb(byte b);
 void pascal printhw(word w);
 void pascal getself(word w);
 void pascal getenv(word name, word dst);
+word pascal getpsp();
 
 asm {
         jmp printc
@@ -67,6 +68,7 @@ asm {
         jmp bload
         jmp getself
         jmp getenv
+        jmp getpsp
 }
 
 word pascal fopenr(word fname) {
@@ -221,8 +223,10 @@ void pascal printhw(word w) {
 void pascal getself(word w) {
         $PUSH DS, ES;
         $PUSH DS;
+        AH = 0x51; $INT 0x21;
         $POP ES;
         DI = w;
+        DS = BX;
         AX = DSWORD[0x2c];
         SI = 0;
         DS = AX;
@@ -238,12 +242,14 @@ void pascal getself(word w) {
                 $STOSB;
                 IF(AL == 0) BREAK;
         }
-        $POP ES,DS;
+        $POP ES, DS;
 }
 
 word FindVar(word oname) {
         $PUSH DS, ES, DS;
+        AH = 0x51; $INT 0x21;
         $POP ES;
+        DS = BX;
         AX = DSWORD[0x2c];
         DI = oname;
         DS = AX;
@@ -281,9 +287,13 @@ void pascal getenv(word name, word dst) {
         DSBYTE[dst] = 0;
         AX = FindVar(name);
         IF(AX == 0xFFFF) return;
+        $PUSH AX;
+        AH = 0x51; $INT 0x21;
+        $POP SI;
+
         $PUSH ES, DS, DS;
         $POP ES;
-        SI = AX; DI = dst; AX = DSWORD[0x2c]; DS = AX;
+        DI = dst; DS = BX; AX = DSWORD[0x2c]; DS = AX;
         $CLD;
         WHILE(TRUE) {
                 $LODSB;
@@ -295,4 +305,9 @@ void pascal getenv(word name, word dst) {
                 IF(AL == 0) BREAK;
         }
         $POP DS, ES;
+}
+
+word pascal getpsp() {
+        AH = 0x51; $INT 0x21;
+        return BX;
 }

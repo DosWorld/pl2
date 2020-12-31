@@ -24,6 +24,8 @@
 
 $compile exe
 $option map on
+$option code_align 2
+$option data_align 2
 
 $include "pl2.pl2"
 $include "bdos.pl2"

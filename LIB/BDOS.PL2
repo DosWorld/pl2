@@ -24,6 +24,7 @@
 const bdos = file("bdos.com")
 
 declare sub int21_call(dx,cx,bx,ax) inline("\x5A\x59\x5B\x58\xCD\x21")
+declare sub jmp_near(addr)          inline("\xC3")
 
 # define procedures
 declare sub printc(c)                    at bdos[0]
@@ -46,11 +47,15 @@ declare sub bsave(fname, buf, size)      at bdos[48]
 declare function bload(fname, buf, size) at bdos[51]
 declare sub __getself(dst)               at bdos[54]
 declare sub getenv(name, dst)            at bdos[57]
+declare function getpsp                  at bdos[60]
 
 sub halt(code)
         rcode = code
-        inline("\xB8\x03\x01\x50\xC3")
+        jmp_near(exitproc)
 end
+
+# resize DOS memory for .COM (allocate 64k)
+declare sub com_memalign                inline("\xb4\x4a\xbb\x00\x10\xcd\x21")
 
 dim __p
 
@@ -63,23 +68,22 @@ function paramcount
 end
 
 # inititalization part
-
 initialization
 
-        # resize DOS memory for .COM (allocate 64k)
-        inline("\xb4\x4a\xbb\x00\x10\xcd\x21")
-
         # parse parameters
-        dim p, plen, i, c
+        dim p, plen, i, c, m
 
+        m = FREE_MEMORY + 1024
+        far_memcopy(cseg(), m, getpsp(), &H80, 256)
+        
         __p = FREE_MEMORY + 2
         FREE_MEMORY = FREE_MEMORY + 130
         __p%[0] = FREE_MEMORY
         __getself(FREE_MEMORY)
         FREE_MEMORY = FREE_MEMORY + len(FREE_MEMORY) + 1
 
-        plen = PEEK(128)
-        p = 129
+        plen = PEEK(m)
+        p = m + 1
         i = 0
         __p%[-2] = 0
         while i < plen

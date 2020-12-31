@@ -59,6 +59,10 @@ function is_hdig(c)
         return false
 end
 
+function is_bdig(c)
+        return (c = '0') or (c = '1')
+end
+
 sub change_ext(dst, src, new_ext)
         dim n, k
         n = 0

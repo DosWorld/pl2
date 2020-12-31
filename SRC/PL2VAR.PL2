@@ -39,3 +39,7 @@ dim debug
 dim opt_map_write
 dim gen_target
 dim stk_ret
+
+dim gen_inited
+dim gen_code_align
+dim gen_data_align

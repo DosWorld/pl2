@@ -30,6 +30,32 @@ function gen_word_size
         return 2
 end
 
+sub gen_calign
+        dim i, n
+        if (gen_code_align = 0) or (gen_code_align = 1) then
+                return
+        end
+        n = gen_code_align - mod(code_ptr, gen_code_align)
+        i = 0
+        while i < n
+                code_ptr = putb(code, code_ptr, &H90)
+                i = i + 1
+        end
+end
+
+sub gen_dalign
+        dim i, n
+        if (gen_data_align = 0) or (gen_data_align = 1) then
+                return
+        end
+        n = gen_data_align - mod(code_ptr, gen_data_align)
+        i = 0
+        while i < n
+                code_ptr = putb(code, code_ptr, 0)
+                i = i + 1
+        end
+end
+
 sub gen_op(op)
         if op = '+' then
                 putbin(2, "\x01\xd8")
@@ -90,7 +116,40 @@ sub gen_load_int(dig)
         end
 end
 
-sub gen_exe_header
+sub gen_init
+        if gen_target = TARGET_COM then
+                code_ofs = &H0100
+                code_ptr = code_ofs
+                putbin(3, I86_JMP)
+        elseif gen_target = TARGET_EXE then
+                code_ofs = &H0100
+                code_ptr = code_ofs
+        end
+        def("EXITPROC", SYM_GLOBAL, 0, code_ptr)
+        code_ptr = putw(code, code_ptr, 0)
+        def("RCODE", SYM_GLOBAL, 0, code_ptr)
+        code_ptr = putw(code, code_ptr, 0)
+        def("FREE_MEMORY", SYM_GLOBAL, 0, code_ptr)
+        code_ptr = putw(code, code_ptr, 0)
+end
+
+
+sub gen_initfinal(i, t)
+        while i <> -1
+                if table%[i + DICT_TYP] = t then
+                        if t = SYM_INIT then
+                                gen_initfinal(table%[i], t)
+                                gen_call(table%[i + DICT_OFS])
+                                return
+                        elseif t = SYM_DONE then
+                                gen_call(table%[i + DICT_OFS])
+                        end
+                end
+                i = table%[i]
+        end
+end
+
+sub gen_exe_header(entry_point)
         dim bss_par, block_count, inlastblock, i
 
         memfill(code + code_ofs - 32, 32, 0)
@@ -107,16 +166,57 @@ sub gen_exe_header
         end
 
         i = code_ofs - 32
-        code%[i] = &h5a4d
-        code%[i+ 2] = inlastblock
+        code%[i] = &H5A4D
+        code%[i + 2] = inlastblock
         code%[i + 4] = block_count
         code%[i + 8] = 2
         code%[i + 10] = bss_par
         code%[i + 12] = bss_par
-        code%[i + 14] = -&h10
-        code%[i + 16] = &hfffe
-        code%[i + 20] = code_ofs
-        code%[i + 22] = -&h10
-        code_ofs = i
+        code%[i + 14] = &HFFF0 #
+        code%[i + 16] = &HFFFE
+        code%[i + 20] = entry_point
+        code%[i + 22] = &HFFF0 #
+        code = code - 32
         code_ptr = code_ptr + 32
+end
+
+sub gen_done
+        dim i, entry_point
+
+        gen_calign()
+        if gen_target = TARGET_COM then
+                # fix jump to main part
+                code%[code_ofs + 1] = code_ptr - 3 - code_ofs
+                entry_point = &H0100
+        elseif gen_target = TARGET_EXE then
+                entry_point = code_ptr
+        end
+
+        # Call INITIALIZATION's
+        gen_initfinal(dict_ptr, SYM_INIT)
+
+        # Call Main
+        i = lookup("MAIN")
+        if i = -1 then
+                print("No MAIN sub here.\n")
+                error()
+        end
+        gen_call(table%[i + DICT_OFS])
+
+        code%[table%[lookup("EXITPROC") + DICT_OFS]] = code_ptr
+
+        # Gen call all FINALIZATION's
+        gen_initfinal(dict_ptr, SYM_DONE)
+
+        putbin(1, "\xA0")
+        code_ptr = putw(code, code_ptr, table%[lookup("RCODE") + DICT_OFS])
+        putbin(4, "\xB4\x4C\xCD\x21")
+
+        # Now, we know where program ends and where starts free memory
+        i = lookup("FREE_MEMORY")
+        code%[table%[i + DICT_OFS]] = code%[table%[i + DICT_OFS]] + code_ptr
+
+        if gen_target = TARGET_EXE then
+                gen_exe_header(entry_point)
+        end
 end

@@ -34,6 +34,7 @@ declare sub pokei(ofs, val)           inline("\x58\x5b\x89\x07")
 declare function peek(ofs)            inline("\x5B\x8A\x07\xB4\x00")
 declare function peeki(ofs)           inline("\x5B\x8B\x07")
 declare sub memcopy(dst, src, count)  inline("\x59\x5E\x5F\xFC\xF3\xA4")
+declare sub far_memcopy(dseg, dst, sseg, src, count)  inline("\xFC\x59\x5E\x5A\x5F\x5B\x06\x1E\x8E\xDA\x8E\xC3\xF3\xA4\x1F\x07")
 declare sub memfill(dst, count, bval)    inline("\x58\x59\x5F\xFC\xF3\xAA")
 declare sub memfilli(dst, count, wval)   inline("\x58\x59\x5F\xFC\xF3\xAB")
 
